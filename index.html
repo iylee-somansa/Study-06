@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>쇼핑 리스트</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f0f2f5;
+      display: flex;
+      justify-content: center;
+      padding: 40px 16px;
+    }
+    .container {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 480px;
+      padding: 32px 24px;
+    }
+    h1 {
+      font-size: 24px;
+      margin-bottom: 20px;
+      color: #1a1a1a;
+    }
+    .input-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+    .input-row input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 16px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .input-row input:focus { border-color: #4a90d9; }
+    .input-row button {
+      padding: 10px 20px;
+      background: #4a90d9;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.2s;
+    }
+    .input-row button:hover { background: #357abd; }
+    ul { list-style: none; }
+    li {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid #f0f0f0;
+      animation: fadeIn 0.2s ease;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+    li input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      accent-color: #4a90d9;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    li span {
+      flex: 1;
+      font-size: 16px;
+      color: #333;
+      transition: all 0.2s;
+    }
+    li.checked span {
+      text-decoration: line-through;
+      color: #aaa;
+    }
+    li button {
+      background: none;
+      border: none;
+      color: #ccc;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: all 0.2s;
+    }
+    li button:hover { color: #e74c3c; background: #fef0f0; }
+    .empty {
+      text-align: center;
+      color: #aaa;
+      padding: 32px 0;
+      font-size: 15px;
+    }
+    .count {
+      margin-top: 16px;
+      font-size: 13px;
+      color: #999;
+      text-align: right;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>쇼핑 리스트</h1>
+    <div class="input-row">
+      <input type="text" id="itemInput" placeholder="아이템을 입력하세요">
+      <button onclick="addItem()">추가</button>
+    </div>
+    <ul id="list"></ul>
+    <div id="count" class="count"></div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'shopping-list';
+    let items = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+
+    const input = document.getElementById('itemInput');
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') addItem(); });
+
+    function save() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    }
+
+    function addItem() {
+      const text = input.value.trim();
+      if (!text) return;
+      items.push({ text, checked: false });
+      input.value = '';
+      input.focus();
+      save();
+      render();
+    }
+
+    function toggleItem(i) {
+      items[i].checked = !items[i].checked;
+      save();
+      render();
+    }
+
+    function deleteItem(i) {
+      items.splice(i, 1);
+      save();
+      render();
+    }
+
+    function render() {
+      const list = document.getElementById('list');
+      const countEl = document.getElementById('count');
+
+      if (items.length === 0) {
+        list.innerHTML = '<div class="empty">리스트가 비어 있습니다</div>';
+        countEl.textContent = '';
+        return;
+      }
+
+      const checkedCount = items.filter(x => x.checked).length;
+      list.innerHTML = items.map((item, i) => `
+        <li class="${item.checked ? 'checked' : ''}">
+          <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${i})">
+          <span>${item.text.replace(/</g, '&lt;')}</span>
+          <button onclick="deleteItem(${i})" title="삭제">&times;</button>
+        </li>
+      `).join('');
+      countEl.textContent = `${checkedCount} / ${items.length} 완료`;
+    }
+
+    render();
+    input.focus();
+  </script>
+</body>
+</html>
