@@ -117,36 +117,60 @@
   </div>
 
   <script>
-    const STORAGE_KEY = 'shopping-list';
-    let items = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    const SUPABASE_URL = 'https://zhefkttrnrsckuiskwav.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpoZWZrdHRybnJzY2t1aXNrd2F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NjI1NzMsImV4cCI6MjA4OTQzODU3M30.B5hb9ZI3U94ZcNkcEzrhEOpsrw0eMnnpZqJrkpjTo-Y';
+    const API = `${SUPABASE_URL}/rest/v1/shopping_items`;
+    const headers = {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation'
+    };
 
+    let items = [];
     const input = document.getElementById('itemInput');
     input.addEventListener('keydown', e => { if (e.key === 'Enter') addItem(); });
 
-    function save() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    async function loadItems() {
+      const res = await fetch(`${API}?order=created_at.asc`, { headers });
+      items = await res.json();
+      render();
     }
 
-    function addItem() {
+    async function addItem() {
       const text = input.value.trim();
       if (!text) return;
-      items.push({ text, checked: false });
       input.value = '';
       input.focus();
-      save();
+      const res = await fetch(API, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ text, checked: false })
+      });
+      const [newItem] = await res.json();
+      items.push(newItem);
       render();
     }
 
-    function toggleItem(i) {
-      items[i].checked = !items[i].checked;
-      save();
+    async function toggleItem(id) {
+      const item = items.find(x => x.id === id);
+      if (!item) return;
+      item.checked = !item.checked;
       render();
+      await fetch(`${API}?id=eq.${id}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ checked: item.checked })
+      });
     }
 
-    function deleteItem(i) {
-      items.splice(i, 1);
-      save();
+    async function deleteItem(id) {
+      items = items.filter(x => x.id !== id);
       render();
+      await fetch(`${API}?id=eq.${id}`, {
+        method: 'DELETE',
+        headers
+      });
     }
 
     function render() {
@@ -160,17 +184,17 @@
       }
 
       const checkedCount = items.filter(x => x.checked).length;
-      list.innerHTML = items.map((item, i) => `
+      list.innerHTML = items.map(item => `
         <li class="${item.checked ? 'checked' : ''}">
-          <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${i})">
+          <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${item.id})">
           <span>${item.text.replace(/</g, '&lt;')}</span>
-          <button onclick="deleteItem(${i})" title="삭제">&times;</button>
+          <button onclick="deleteItem(${item.id})" title="삭제">&times;</button>
         </li>
       `).join('');
       countEl.textContent = `${checkedCount} / ${items.length} 완료`;
     }
 
-    render();
+    loadItems();
     input.focus();
   </script>
 </body>
